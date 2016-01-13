@@ -20,7 +20,7 @@ function usage() {
     This script checks if a given URL returns a HTTP status code 200 using GET
 
     Some servers do not support HEAD requests, this script uses GET but aborts
-    after the headers have been received. This minimized the overall traffic.
+    after the headers have been received. This minimizes the overall traffic.
 
     If the URL starts with https:// only HTTPS redirects are allowed.
 
