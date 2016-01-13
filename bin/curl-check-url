@@ -3,6 +3,7 @@
 
 $program = basename(array_shift($argv));
 $url = '';
+$location = TRUE;
 $verbose = FALSE;
 
 function syntax_error($m) {
@@ -22,13 +23,15 @@ function usage() {
     Some servers do not support HEAD requests, this script uses GET but aborts
     after the headers have been received. This minimizes the overall traffic.
 
-    If the URL starts with https:// only HTTPS redirects are allowed.
+    If the URL starts with https:// only HTTPS redirects are allowed, otherwise
+    HTTP and HTTPS redirects are followed.
 
     The script exits with 0 if a 200 status code has been received.
     Otherwise the script exits with != 0.
 
     usage: $program [options] <URL>
     options:
+      --no-location      Do not follow redirects.
       -v, --verbose      Show more verbose output.
       -h, --help         Show this help.
     ";
@@ -40,6 +43,10 @@ while(count($argv)) {
   $arg = array_shift($argv);
 
   switch($arg) {
+    case '--no-location':
+      $location = FALSE;
+      break;
+
     case '-v':
     case '--verbose':
       $verbose = TRUE;
@@ -87,7 +94,7 @@ $writefn = function($ch, $chunk) {
 
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $url);
-curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
+curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $location);
 curl_setopt($ch, CURLOPT_HEADER, TRUE);
 curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
 curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X '
