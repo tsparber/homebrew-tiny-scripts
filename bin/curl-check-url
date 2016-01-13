@@ -1,0 +1,116 @@
+#!/usr/bin/env php
+<?php
+
+$program = basename(array_shift($argv));
+$url = '';
+$verbose = FALSE;
+
+function syntax_error($m) {
+  global $program;
+
+  fwrite(STDERR, "$program: $m\n");
+  fwrite(STDERR, "Try `$program --help` for more information.\n");
+  exit(1);
+}
+
+function usage() {
+  global $program;
+
+  $usage = "
+    This script checks if a given URL returns a HTTP status code 200 using GET
+
+    Some servers do not support HEAD requests, this script uses GET but aborts
+    after the headers have been received. This minimized the overall traffic.
+
+    If the URL starts with https:// only HTTPS redirects are allowed.
+
+    The script exits with 0 if a 200 status code has been received.
+    Otherwise the script exits with != 0.
+
+    usage: $program [options] <URL>
+    options:
+      -v, --verbose      Show more verbose output.
+      -h, --help         Show this help.
+    ";
+
+  print(preg_replace("/^ {4}/m", '', $usage));
+}
+
+while(count($argv)) {
+  $arg = array_shift($argv);
+
+  switch($arg) {
+    case '-v':
+    case '--verbose':
+      $verbose = TRUE;
+      break;
+
+    case '-h':
+    case '--help':
+      usage();
+      exit(0);
+      break;
+
+    default:
+      if (strncmp('-', $arg, 1) == 0) {
+        syntax_error("unrecognized option: $arg");
+      } else {
+        $url = $arg;
+      }
+      break;
+  }
+}
+
+if (strlen($url) == 0) {
+  usage();
+  exit(1);
+}
+
+$writefn = function($ch, $chunk) {
+  static $data = '';
+
+  $data .= $chunk;
+  $header = strstr($data, "\r\n\r\n", TRUE);
+
+  if ($header !== FALSE) {
+    // Follow redirects and ignore previous headers if a location header exists
+    if (strpos($header, "\r\nLocation: ") !== FALSE) {
+      $data = '';
+    } else {
+      // Abort if the headers have been recieved
+      return -1;
+    }
+  }
+
+  return strlen($chunk);
+};
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
+curl_setopt($ch, CURLOPT_HEADER, TRUE);
+curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X '
+                                  . '10_9_2) AppleWebKit/537.36 (KHTML, like '
+                                  . 'Gecko) Chrome/33.0.1750.152 '
+                                  . 'Safari/537.36');
+curl_setopt($ch, CURLOPT_VERBOSE, $verbose);
+curl_setopt($ch, CURLOPT_WRITEFUNCTION, $writefn);
+
+if (strncmp('https://', $url, 8) == 0) {
+  curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
+} else {
+  curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP|CURLPROTO_HTTPS);
+}
+
+$result = curl_exec($ch);
+$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+print("$http_code\n");
+
+if ($http_code === 200) {
+  exit(0);
+} else {
+  exit(1);
+}
