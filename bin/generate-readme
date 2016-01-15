@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+shopt -s nullglob
+
+echo "# Collection of some small scripts
+This [homebrew](http://brew.sh) Tap provides some small command line scripts. The easiest way to install them is using
+homebrew, this will also take care of any eventual dependencies that are not already available on your system.
+
+--"
+
+for formula_path in Formula/*.rb;
+do
+  formula=$(basename "${formula_path}" | sed 's|\.rb$||')
+  echo "
+    ### [${formula}](bin/${formula})
+    $(brew desc ${formula_path} | cut -d: -f2 | sed -e 's/^[ \t]*//').
+    \`\`\`
+    brew install tsparber/tiny-scripts/${formula}
+    \`\`\`" | sed -E 's/^ {4}//'
+done
+
+echo "
+## License
+[The Unlicense](LICENSE) (Public Domain, essentially)
+
+--
+Inspired by [vitorgalvao/tiny-scripts](https://github.com/vitorgalvao/homebrew-tiny-scripts) Tap, thank you!"
