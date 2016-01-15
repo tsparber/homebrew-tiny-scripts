@@ -4,6 +4,12 @@ homebrew, this will also take care of any eventual dependencies that are not alr
 
 --
 
+### [cask-push-updated](bin/cask-push-updated)
+This script pushes the given cask to GitHub.
+```
+brew install tsparber/tiny-scripts/cask-push-updated
+```
+
 ### [curl-check-url](bin/curl-check-url)
 Check the HTTP status code of a given URL using GET.
 ```

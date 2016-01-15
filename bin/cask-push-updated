@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+
+readonly program="$(basename "$0")"
+readonly submit_pr_to='caskroom:master'
+remote_push=''
+skip_pull_request=0
+commit_message=''
+verbose=0
+
+syntax_error() {
+  echo "$program: $1" >&2
+  echo "Try \`$program --help\` for more information." >&2
+  exit 1
+}
+
+depends_on() {
+  formula="$1"
+  [[ "$#" -eq 2 ]] && cmd="$2" || cmd=$(basename "${formula}")
+
+  if [[ ! $(which ${cmd}) ]]; then
+    echo -e "$(tput setaf 1)
+      This script depends on '${cmd}'.
+      If you have [Homebrew](http://brew.sh), you can install it with 'brew install ${formula}'.
+    $(tput sgr0)" | sed -E 's/ {6}//' >&2
+    exit 1
+  fi
+}
+
+depends_on 'git'
+depends_on 'hub'
+
+find_remote_push() {
+  git remote -v | grep -v "github.com/caskroom" | grep "(push)" | awk '{print $1}' | head -n 1 || echo 'origin'
+}
+
+remote_push=$(find_remote_push)
+
+usage() {
+  echo "
+    This script pushes the given cask to GitHub
+
+    Performed steps:
+    1. Switch to master
+    2. Create new branch (update-cask_name)
+    3. Commit with the given commit message
+    4. Push branch to GitHub
+    5. Create pull request (Skip with -s)
+    6. Switch back to maser
+
+    usage: $program [options] <cask_name>
+    options:
+      -m <msg>, --message <msg>     Use to specify the commit message (defaults to 'Updated cask_name').
+      -p <remote>, --push <remote>  Use to specify a remote to push to (defaults to '$(find_remote_push)').
+      -s, --skip-pull-request       Use to skip creating a pull request.
+      -v, --verbose                 Show more verbose output.
+      -h, --help                    Show this help.
+  " | sed -E 's/^ {4}//'
+}
+
+# available flags
+while [[ "$1" ]]; do
+  case "$1" in
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    -m | --message)
+      commit_message="$2"
+      shift
+      ;;
+    -p | --push)
+      remote_push="$2"
+      shift
+      ;;
+    -s | --skip-pull-request)
+      skip_pull_request=1
+      ;;
+    -v | --verbose)
+      verbose=1
+      ;;
+    -*)
+      syntax_error "unrecognized option: $1"
+      ;;
+    *)
+      break
+      ;;
+  esac
+  shift
+done
+
+# define abort function, that will reset the state
+finish() {
+  # show message
+  if [[ "$1" == 'abort' ]]; then
+    echo -e "$(tput setaf 1)$2$(tput sgr0)\n"
+    git checkout master --quiet
+    exit 1
+  elif [[ "$1" == 'success' ]]; then
+    echo -e "$(tput setaf 2)Pushed ${cask_name}$(tput sgr0)\n"
+
+    exit 0
+  fi
+}
+
+# cleanup if aborted with ⌃C
+trap 'finish abort "You aborted"' SIGINT
+
+# exit if not inside a 'homebrew-*/Casks' directory
+casks_dir=$(pwd | perl -ne 'print m{homebrew-[^/]+/Casks}')
+if [[ -z "${casks_dir}" ]]; then
+  echo -e "\n$(tput setaf 1)You need to be inside a '/homebrew-*/Casks' directory$(tput sgr0)\n"
+  exit 1
+fi
+
+# exit if no argument was given
+if [[ -z "$1" ]]; then
+  usage
+  exit 1
+fi
+
+# clean the cask's name, and check if it is valid
+cask_name="$1"
+[[ "${cask_name}" == *'.rb' ]] && cask_name=$(echo "${cask_name}" | sed 's|\.rb$||')
+cask_file="./${cask_name}.rb"
+cask_branch="update-${cask_name}"
+[[ ! -f "${cask_file}" ]] && finish abort 'There is no such cask'
+
+git status | grep -q "modified:   ${cask_name}.rb" || finish abort "${cask_name}.rb is not modified"
+
+[[ -z "${commit_message}" ]] && commit_message="Updated ${cask_name}"
+quiet_option='--quiet'
+[[ ${verbose} -eq 1 ]] && quiet_option=''
+
+brew cask audit ${cask_file} || finish abort "brew cask audit ${cask_file} failed"
+
+git checkout master ${quiet_option} &&
+git checkout -b ${cask_branch} master ${quiet_option} &&
+git commit --message="${commit_message}" ${quiet_option} -- ${cask_file} &&
+git push ${remote_push} ${cask_branch} ${quiet_option} || finish abort "Something went wrong"
+
+if [[ ${skip_pull_request} -eq 0 ]]; then
+    hub pull-request -b "${submit_pr_to}" -m "${commit_message}" || finish abort "Could not create pull request"
+fi
+
+finish success
