@@ -133,6 +133,7 @@ git status | grep -q "modified:   ${cask_name}.rb" || finish abort "${cask_name}
 quiet_option='--quiet'
 [[ ${verbose} -eq 1 ]] && quiet_option=''
 
+brew cask style --fix ${cask_file} || finish abort "brew cask style --fix ${cask_file} failed"
 brew cask audit ${cask_file} || finish abort "brew cask audit ${cask_file} failed"
 
 git checkout master ${quiet_option} &&
