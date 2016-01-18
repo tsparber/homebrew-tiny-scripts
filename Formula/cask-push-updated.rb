@@ -2,7 +2,7 @@ class CaskPushUpdated < Formula
   desc "This script pushes the given cask to GitHub"
   homepage "https://github.com/tsparber/homebrew-tiny-scripts"
   url "https://github.com/tsparber/homebrew-tiny-scripts.git"
-  version "0.1.1"
+  version "0.1.2"
 
   def install
     bin.install "bin/cask-push-updated"

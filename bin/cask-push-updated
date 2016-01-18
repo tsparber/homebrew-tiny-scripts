@@ -51,7 +51,7 @@ usage() {
 
     usage: $program [options] <cask_name>
     options:
-      -m <msg>, --message <msg>     Use to specify the commit message (defaults to 'Updated cask_name').
+      -m <msg>, --message <msg>     Use to specify the commit message (defaults to 'Updated cask_name (version)').
       -p <remote>, --push <remote>  Use to specify a remote to push to (defaults to '$(find_remote_push)').
       -s, --skip-pull-request       Use to skip creating a pull request.
       -v, --verbose                 Show more verbose output.
@@ -129,7 +129,7 @@ cask_branch="update-${cask_name}"
 
 git status | grep -q "modified:   ${cask_name}.rb" || finish abort "${cask_name}.rb is not modified"
 
-[[ -z "${commit_message}" ]] && commit_message="Updated ${cask_name}"
+[[ -z "${commit_message}" ]] && commit_message="Updated ${cask_name} ($(brew cask _stanza version "${cask_file}"))"
 quiet_option='--quiet'
 [[ ${verbose} -eq 1 ]] && quiet_option=''
 
@@ -140,9 +140,13 @@ git checkout master ${quiet_option} &&
 git checkout -b ${cask_branch} master ${quiet_option} &&
 git commit --message="${commit_message}" ${quiet_option} -- ${cask_file} &&
 git push ${remote_push} ${cask_branch} ${quiet_option} || finish abort "Something went wrong"
+git checkout master
+git branch -D ${cask_branch}
 
 if [[ ${skip_pull_request} -eq 0 ]]; then
-    hub pull-request -b "${submit_pr_to}" -m "${commit_message}" || finish abort "Could not create pull request"
+    result=$(hub pull-request -b "${submit_pr_to}" -m "${commit_message}") || finish abort "Could not create pull request"
+    echo ${result}
+    open ${result}
 fi
 
 finish success
