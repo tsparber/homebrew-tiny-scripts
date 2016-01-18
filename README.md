@@ -4,6 +4,12 @@ homebrew, this will also take care of any eventual dependencies that are not alr
 
 --
 
+### [appcast-from-url](bin/appcast-from-url)
+This script generates a appcast stanza for the given url.
+```
+brew install tsparber/tiny-scripts/appcast-from-url
+```
+
 ### [cask-push-updated](bin/cask-push-updated)
 This script pushes the given cask to GitHub.
 ```
