@@ -95,7 +95,7 @@ finish() {
   # show message
   if [[ "$1" == 'abort' ]]; then
     echo -e "$(tput setaf 1)$2$(tput sgr0)\n"
-    git checkout master --quiet
+    git checkout master
     exit 1
   elif [[ "$1" == 'success' ]]; then
     echo -e "$(tput setaf 2)Pushed ${cask_name}$(tput sgr0)\n"
@@ -140,13 +140,14 @@ git checkout master ${quiet_option} &&
 git checkout -b ${cask_branch} master ${quiet_option} &&
 git commit --message="${commit_message}" ${quiet_option} -- ${cask_file} &&
 git push ${remote_push} ${cask_branch} ${quiet_option} || finish abort "Something went wrong"
-git checkout master
-git branch -D ${cask_branch}
 
 if [[ ${skip_pull_request} -eq 0 ]]; then
     result=$(hub pull-request -b "${submit_pr_to}" -m "${commit_message}") || finish abort "Could not create pull request"
     echo ${result}
     open ${result}
 fi
+
+git checkout master ${quiet_option}
+git branch -D ${cask_branch} ${quiet_option}
 
 finish success
