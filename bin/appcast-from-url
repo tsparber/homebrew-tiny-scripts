@@ -71,7 +71,7 @@ appcast_http_response="$(curl-check-url ${verbose_option} "${appcast_url}")"
 [[ "${appcast_http_response}" != '200' ]] && appcast_found_error "returned a non-200 (OK) HTTP response code (${appcast_http_response})"
 
 curl_appcast () {
-  curl --silent ${verbose_option} "${appcast_url}" | sed 's|<pubDate>[^<]*</pubDate>||g' | shasum --algorithm 256 | awk '{ print $1 }'
+  curl --silent --compressed --location ${verbose_option} "${appcast_url}" | sed 's|<pubDate>[^<]*</pubDate>||g' | shasum --algorithm 256 | awk '{ print $1 }'
 }
 
 appcast_checkpoint=$(curl_appcast)
