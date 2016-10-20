@@ -1,0 +1,48 @@
+#!/bin/bash
+
+set -e
+readonly program="$(basename "$0")"
+
+usage() {
+  echo "
+    This script checks all mp4 files in the current folder for errors.
+
+    usage: $program [options]
+    options:
+      -h, --help                    Show this help.
+  " | sed -E 's/^ {4}//'
+}
+
+# available flags
+while [[ "$1" ]]; do
+  case "$1" in
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    -*)
+      syntax_error "unrecognized option: $1"
+      ;;
+    *)
+      break
+      ;;
+  esac
+  shift
+done
+
+error_found=0
+for d in *.mp4; do
+  echo "---------------------------------------------"
+  echo Checking ${d}
+  ffmpeg -v error -i "${d}" -f null - 2> "error_${d}.log"
+
+  if [ -s "error_${d}.log" ]; then
+    echo ERROR: ${d}
+    error_found=1
+  else
+    echo OK: ${d}
+    rm "error_${d}.log"
+  fi
+done
+
+exit ${error_found}
