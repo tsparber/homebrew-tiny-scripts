@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -e
+readonly program="$(basename "$0")"
+
+usage() {
+  echo "
+    This script concatenates all mp4 files found in the current folder.
+    The resulting file is named the same as the current folder.
+
+    usage: $program [options]
+    options:
+      -h, --help                    Show this help.
+  " | sed -E 's/^ {4}//'
+}
+
+# available flags
+while [[ "$1" ]]; do
+  case "$1" in
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    -*)
+      syntax_error "unrecognized option: $1"
+      ;;
+    *)
+      break
+      ;;
+  esac
+  shift
+done
+
+ffmpeg -f concat -safe 0 -i <(printf "file '$PWD/%s'\n" ./*.mp4) -c copy "$(basename "$PWD").mp4"
+exit $?

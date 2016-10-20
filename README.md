@@ -22,6 +22,12 @@ Check the HTTP status code of a given URL using GET.
 brew install tsparber/tiny-scripts/curl-check-url
 ```
 
+### [ffmpeg-concat-mp4](bin/ffmpeg-concat-mp4)
+Concatenate all mp4 files found in the current folder.
+```
+brew install tsparber/tiny-scripts/ffmpeg-concat-mp4
+```
+
 ## License
 [The Unlicense](LICENSE) (Public Domain, essentially)
 
