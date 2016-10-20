@@ -1,6 +1,5 @@
 #!/bin/bash
 
-set -e
 readonly program="$(basename "$0")"
 
 usage() {
@@ -36,13 +35,15 @@ for d in *.mp4; do
   echo Checking ${d}
   ffmpeg -v error -i "${d}" -f null - 2> "error_${d}.log"
 
-  if [ -s "error_${d}.log" ]; then
+  if [ $? -ne 0 ]; then
     echo ERROR: ${d}
     error_found=1
   else
     echo OK: ${d}
-    rm "error_${d}.log"
   fi
+
+  cat "error_${d}.log"
+  rm "error_${d}.log"
 done
 
 exit ${error_found}
